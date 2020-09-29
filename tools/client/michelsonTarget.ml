@@ -4,6 +4,8 @@ open Dune_Network_Lib
 
 module Liquidity = LiquidityLang
 
+module Source = Liquidity
+
 module Target = struct
 
   open Dune_Network_Lib.Micheline
@@ -182,7 +184,7 @@ end
 include Compiler
 
 module Client = LiquidClient.Make(struct
-    module Target = Target
-    include Compiler
-  end
-  )
+  module Source = Source
+  module Target = Target
+  include Compiler
+end)

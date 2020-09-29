@@ -137,7 +137,6 @@ module Trace = struct
          (req "stack" (list (obj2
                                (req "item" const_enc)
                                (opt "annot" string)))))
-
 end
 
 module Big_map_diff = struct

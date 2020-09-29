@@ -154,7 +154,8 @@ module Make(L : LANG) = struct
   open E
   open T
 
-  let post ?loc_table ~input ~output ~path data =
+  let post
+      ?loc_table ~input ~output ~path data =
     post ~raise_response_error ?loc_table ~input ~output ~path data
 
   let get ?loc_table ~output ~path =

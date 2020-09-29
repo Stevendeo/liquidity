@@ -9,15 +9,8 @@ open Lwt.Infix
 open Dune_Network_Lib.Stdlib
 open Dune_Network_Lib.Crypto (* for crypto *)
 
-module Liquidity = LiquidityLang
-
-type liquidity_datatype = Liquidity.datatype Lazy_superposed.t
-type liquidity_const = Liquidity.const Lazy_superposed.t
-type liquidity_contract = Liquidity.contract Lazy_superposed.t
-
-
 module Make (L : LANG) = struct
-
+  
   module L = L
   module RPC = LiquidClientRPCs.Make(L)
   module E = RPC.E
@@ -28,11 +21,17 @@ module Make (L : LANG) = struct
   open T
   open RPC
 
+  type source_datatype = Source.datatype Lazy_superposed.t
+  type source_const = Source.const Lazy_superposed.t
+  type source_contract = Source.contract Lazy_superposed.t
+
   type target_datatype = Target.datatype Lazy_superposed.t
   type target_const = Target.const Lazy_superposed.t
   type target_contract = Target.contract Lazy_superposed.t
 
-  type liq_big_map_diff = (bm_id, Liquidity.const) Big_map_diff.t
+  type liq_big_map_diff = (bm_id, Source.const) Big_map_diff.t
+
+  module SourceOperation = OperationMake (Source)
 
   let get_private_key ?private_key () =
     match private_key, !LiquidOptions.private_key with
@@ -68,7 +67,7 @@ module Make (L : LANG) = struct
     | Some counter -> Lwt.return counter
 
   let big_map_info storage storage_ty id =
-    Liquidity.list_big_maps storage storage_ty
+    Source.list_big_maps storage storage_ty
     |> List.find_opt (fun ((Bm_id i | Bm_name (i, _)), _, _) -> i = id)
 
   let id_of_info id info = match info with
@@ -153,11 +152,14 @@ module Make (L : LANG) = struct
     | None -> get_head ()
 
   let run_pre ?(debug=false) ?(amount = !LiquidOptions.amount)
-      source_contract target_contract loc_table ?source entry_name input storage =
+      source_contract
+      target_contract
+      loc_table
+      ?source entry_name input storage =
     let rpc = if debug then RPC.trace else RPC.run in
-    let storage_ty = Liquidity.storage source_contract in
+    let storage_ty = Source.storage source_contract in
     let input_ty =
-      match List.assoc_opt entry_name (Liquidity.entries source_contract) with
+      match List.assoc_opt entry_name (Source.entries source_contract) with
       | Some ty -> ty
       | None -> failwith ("Contract has no entry point " ^ entry_name) in
     let input = compile_const ~ty:input_ty input in
@@ -204,7 +206,7 @@ module Make (L : LANG) = struct
   let get_storage contract address =
     let _ = compile_contract contract in
     RPC.get_storage address >|= fun storage ->
-    try decompile_const storage ~ty:(Liquidity.storage contract)
+    try decompile_const storage ~ty:(Source.storage contract)
     with _ ->
       Format.eprintf "Could not convert constant to contract storage type.@.";
       decompile_const storage
@@ -248,13 +250,13 @@ module Make (L : LANG) = struct
 
   let build_big_map_subst const const_ty big_map_diff =
     let open Big_map_diff in
-    Liquidity.list_big_maps const const_ty |>
+    Source.list_big_maps const const_ty |>
     List.map (fun ((Bm_id i | Bm_name (i, _)), _, _) ->
         i, big_map_elements i big_map_diff
       )
 
   let replace_init_big_maps big_map_diff storage storage_ty =
-    Liquidity.apply_big_map_subst
+    Source.apply_big_map_subst
       (build_big_map_subst storage storage_ty big_map_diff)
       storage
 
@@ -264,7 +266,7 @@ module Make (L : LANG) = struct
       try Some (get_source ?source ())
       with _ -> None in
     match comp_init, init_params with
-    | Liquidity.No_init, [c]
+    | Source.No_init, [c]
     | Init_constant c, [] -> Lwt.return c
 
     | No_init, [] ->
@@ -281,9 +283,9 @@ module Make (L : LANG) = struct
           "init_storage: init storage needs %d arguments, but was given %d"
           l_req l_giv ;
       let param = match init_params with
-        | [] -> Liquidity.unit
+        | [] -> Source.unit
         | [x] -> x
-        | _ -> Liquidity.tuple init_params
+        | _ -> Source.tuple init_params
       in
       Lwt.return param
 
@@ -295,13 +297,13 @@ module Make (L : LANG) = struct
           l_req l_giv;
       let eval_input_storage =
         try
-          Liquidity.default_empty_const (Liquidity.storage contract)
+          Source.default_empty_const (Source.storage contract)
         with Not_found -> failwith "could not construct dummy storage for eval"
       in
       let eval_input_parameter = match init_params with
-        | [] -> Liquidity.unit
+        | [] -> Source.unit
         | [x] -> x
-        | _ -> Liquidity.tuple init_params
+        | _ -> Source.tuple init_params
       in
 
       let ct, _, loc_table = compile_contract c in
@@ -310,7 +312,7 @@ module Make (L : LANG) = struct
       >>= fun (_, eval_init_storage, big_map_diff, _) ->
       (* Add elements of big map *)
       let eval_init_storage =
-        replace_init_big_maps big_map_diff eval_init_storage (Liquidity.storage contract) in
+        replace_init_big_maps big_map_diff eval_init_storage (Source.storage contract) in
       Lwt.return eval_init_storage
 
 
@@ -320,11 +322,11 @@ module Make (L : LANG) = struct
     let ty = match comp_init with
       | Init_components args_tys ->
         (match args_tys with
-         | [] -> Tunit
+         | [] -> Source.tunit
          | [_, ty] -> ty
-         | _ -> Ttuple (List.map snd args_tys)
+         | _ -> Source.ttuple (List.map snd args_tys)
         )
-      | _ -> Liquidity.storage contract in
+      | _ -> Source.storage contract in
     compile_const ~ty init
 
 
@@ -571,7 +573,7 @@ module Make (L : LANG) = struct
       ~loc_table address ?contract entry_name input =
     let input_ty = match contract with
       | None -> None
-      | Some c -> match List.assoc_opt entry_name (Liquidity.entries c) with
+      | Some c -> match List.assoc_opt entry_name (Source.entries c) with
         | None -> failwith ("Contract has no entry point " ^ entry_name)
         | ty -> ty in
     let input_t = compile_const ?ty:input_ty input in
@@ -687,11 +689,11 @@ module Make (L : LANG) = struct
     let open Big_map_diff in
     function
     | Big_map_add { id; key_hash; key; value } ->
-      let key = Liquidity.const#ast key in
-      let value = Liquidity.const#ast value in
+      let key = Source.const#ast key in
+      let value = Source.const#ast value in
       Big_map_add { id; key_hash; key; value }
     | Big_map_remove { id; key_hash; key } ->
-      let key = Liquidity.const#ast key in
+      let key = Source.const#ast key in
       Big_map_remove { id; key_hash; key }
     | Big_map_delete { id } ->
       Big_map_delete { id }
@@ -719,59 +721,59 @@ module Make (L : LANG) = struct
     type 'a t
     val init_storage :
       ?source:string ->
-      liquidity_contract ->
-      liquidity_const list -> target_const t
+      source_contract ->
+      source_const list -> target_const t
     val run :
       ?amount : LiquidNumber.tez ->
-      liquidity_contract ->
+      source_contract ->
       string ->
-      liquidity_const ->
-      liquidity_const ->
-      (LiquidityOperation.internal list * liquidity_const *
-       (bm_id, liquidity_const) Big_map_diff.item
+      source_const ->
+      source_const ->
+      (SourceOperation.internal list * source_const *
+       (bm_id, source_const) Big_map_diff.item
          list)
         t
     val run_debug :
       ?amount : LiquidNumber.tez ->
-      liquidity_contract ->
+      source_contract ->
       string ->
-      liquidity_const ->
-      liquidity_const ->
-      (LiquidityOperation.internal list * liquidity_const *
-       (bm_id, liquidity_const) Big_map_diff.item
+      source_const ->
+      source_const ->
+      (SourceOperation.internal list * source_const *
+       (bm_id, source_const) Big_map_diff.item
          list *
-       (Liquidity.location, liquidity_const) Trace.trace_item list)
+       (Source.location, source_const) Trace.trace_item list)
         t
     val deploy :
       ?balance : LiquidNumber.tez ->
-      liquidity_contract ->
-      liquidity_const list -> (string * string) t
+      source_contract ->
+      source_const list -> (string * string) t
     val get_storage :
-      liquidity_contract -> string -> liquidity_const t
+      source_contract -> string -> source_const t
     val get_big_map_value :
-      bm_id * liquidity_datatype * liquidity_datatype ->
-      liquidity_const -> liquidity_const option t
+      bm_id * source_datatype * source_datatype ->
+      source_const -> source_const option t
     val call :
-      ?contract:liquidity_contract ->
+      ?contract:source_contract ->
       ?amount : LiquidNumber.tez ->
-      address:string -> entry:string -> liquidity_const -> string t
+      address:string -> entry:string -> source_const -> string t
     val activate : secret:string -> string t
     val inject : operation:bytes -> signature:string -> string t
     val pack :
-      const:liquidity_const -> ty:liquidity_datatype -> bytes t
+      const:source_const -> ty:source_datatype -> bytes t
     val forge_deploy :
       ?head:Header.t ->
       ?source:string ->
       ?public_key:string ->
       ?balance : LiquidNumber.tez ->
-      liquidity_contract -> liquidity_const list -> bytes t
+      source_contract -> source_const list -> bytes t
     val forge_call :
       ?head:Header.t ->
       ?source:string ->
       ?public_key:string ->
-      ?contract:liquidity_contract ->
+      ?contract:source_contract ->
       ?amount : LiquidNumber.tez ->
-      address:string -> entry:string -> liquidity_const -> bytes t
+      address:string -> entry:string -> source_const -> bytes t
   end
 
   (* Withoud optional argument head *)
@@ -784,13 +786,17 @@ module Make (L : LANG) = struct
       >|= fun storage ->
       Target.const#ast storage
 
-    let run ?amount contract entry_name input storage =
+    let run ?amount contract entry_name input storage :
+      (SourceOperation.internal list * source_const *
+       (LiquidClientUtils.bm_id, source_const)
+         LiquidClientTypes.Big_map_diff.item list)
+        Lwt.t =
       let contract = contract#ast in
       let input = input#ast in
       let storage = storage#ast in
       run ?amount contract entry_name input storage
       >|= fun (ops, storage, bm) ->
-      (ops, Liquidity.const#ast storage, print_big_map_diff bm)
+      (ops, Source.const#ast storage, print_big_map_diff bm)
 
     let run_debug ?amount contract entry_name input storage =
       let contract = contract#ast in
@@ -798,7 +804,7 @@ module Make (L : LANG) = struct
       let storage = storage#ast in
       run_debug ?amount contract entry_name input storage
       >|= fun (ops, storage, bm, trace) ->
-      (ops, Liquidity.const#ast storage, print_big_map_diff bm, print_trace trace)
+      (ops, Source.const#ast storage, print_big_map_diff bm, print_trace trace)
 
     let deploy ?balance contract args =
       let contract = contract#ast in
@@ -809,7 +815,7 @@ module Make (L : LANG) = struct
       let contract = contract#ast in
       get_storage contract address
       >|= fun storage ->
-      Liquidity.const#ast storage
+      Source.const#ast storage
 
     let get_big_map_value (id, tk, tv) key =
       let id = id, tk#ast, tv#ast in
@@ -817,7 +823,7 @@ module Make (L : LANG) = struct
       get_big_map_value id key
       >|= function
       | None -> None
-      | Some v -> Some (Liquidity.const#ast v)
+      | Some v -> Some (Source.const#ast v)
 
     let call ?contract ?amount ~address ~entry parameter =
       let contract = match contract with

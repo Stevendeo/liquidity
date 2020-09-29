@@ -8,6 +8,8 @@ open Love_ast_types
 
 module Liquidity = LiquidityLang
 
+module Source = Liquidity
+
 module Target = struct
 
   open Dune_Network_Lib
@@ -138,6 +140,7 @@ end
 include Compiler
 
 module Client = LiquidClient.Make(struct
+  module Source = Source
   module Target = Target
   include Compiler
 end)

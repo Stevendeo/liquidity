@@ -73,28 +73,24 @@ module Data = struct
       failwith (s ^ " is not a valid public key")
 end
 
-let get_contract () =
-  From_files (Data.get_files ())
-  |> Liquidity.parse_contract
-  |> Liquidity.contract#ast
-
-let get_inputs () =
-  Data.get_inputs ()
-  |> List.map Liquidity.const#string
+type err =
+  | Str of string
+  | Err of (LiquidTypes.location * string)
 
 let report_err ?(kind="Error") fmt (err_loc, err_msg) =
-  Format.fprintf fmt "%a: %s: @[%s@]\n%!" Liquidity.print_loc err_loc kind err_msg
+    Format.fprintf fmt "%a: %s: @[%s@]\n%!" Liquidity.print_loc err_loc kind err_msg
 
-let report_error = function
+let report_error =
+  function
   | LiquidError error ->
     report_err Format.err_formatter (error.err_loc, error.err_msg);
   | LiquidNamespace.Unknown_namespace (p, err_loc) as exn ->
     let backtrace = Printexc.get_backtrace () in
     Format.eprintf "Error: %s\nBacktrace:\n%s@."
       (Printexc.to_string exn) backtrace ;
-    report_err Format.err_formatter
-      (err_loc,
-       Printf.sprintf "Unknown module or contract %s" (String.concat "." p));
+    report_err Format.err_formatter (
+        err_loc,
+        Printf.sprintf "Unknown module or contract %s" (String.concat "." p));
   | LiquidFromMicheline.Missing_program_field f ->
     Format.eprintf "Missing script field %s@." f;
   | LiquidClientRequest.RequestError (code, msg) ->
@@ -104,6 +100,26 @@ let report_error = function
     if !LiquidOptions.verbosity > 0 then
       Format.eprintf "JSON Error:\n%s@."
         (Ezjsonm.value_to_string ~minify:false json);
+  | Failure f ->
+    Format.eprintf "Failure: %s@." f
+  | Syntaxerr.Error (Syntaxerr.Other loc) ->
+    report_err ~kind:"Syntax error" Format.err_formatter
+      (LiquidLoc.loc_of_location loc, "unknown");
+
+  | exn -> begin
+      try
+        LiquidClientErrors.report_err Format.err_formatter exn;
+        if !LiquidOptions.verbosity > 0 then
+          let json = LiquidClientErrors.error_json exn in
+          Format.eprintf "JSON Error:\n%s@."
+            (Ezjsonm.value_to_string ~minify:false json)
+      with
+      | LiquidClientErrors.UnknownException ->
+        let backtrace = Printexc.get_backtrace () in
+        Format.eprintf "Error: %s\nBacktrace:\n%s@."
+          (Printexc.to_string exn) backtrace
+    end (*
+
   | LiquidClientErrors.RuntimeError (error, _trace, json) ->
     report_err ~kind:"Runtime error" Format.err_formatter error;
     if !LiquidOptions.verbosity > 0 then
@@ -114,26 +130,23 @@ let report_error = function
     if !LiquidOptions.verbosity > 0 then
       Format.eprintf "JSON Error:\n%s@."
         (Ezjsonm.value_to_string ~minify:false json);
+
   | LiquidClientErrors.RuntimeFailure (error, None, _trace, json) ->
     report_err ~kind:"Failed at runtime" Format.err_formatter error;
     if !LiquidOptions.verbosity > 0 then
       Format.eprintf "JSON Error:\n%s@."
         (Ezjsonm.value_to_string ~minify:false json);
+
   | LiquidClientErrors.RuntimeFailure (error, Some v, _trace, json) ->
     report_err ~kind:"Failed at runtime" Format.err_formatter error;
-    Format.eprintf "Failed with %s@." v#string;
+    Format.eprintf "Failed with %s@." v;
     if !LiquidOptions.verbosity > 0 then
       Format.eprintf "JSON Error:\n%s@."
         (Ezjsonm.value_to_string ~minify:false json);
-  | Failure f ->
-    Format.eprintf "Failure: %s@." f
-  | Syntaxerr.Error (Syntaxerr.Other loc) ->
-    report_err ~kind:"Syntax error" Format.err_formatter
-      (LiquidLoc.loc_of_location loc, "unknown");
   | exn ->
     let backtrace = Printexc.get_backtrace () in
     Format.eprintf "Error: %s\nBacktrace:\n%s@."
-      (Printexc.to_string exn) backtrace
+      (Printexc.to_string exn) backtrace *)
 
 module type S = sig
   val inject : string -> unit
@@ -151,6 +164,16 @@ end
 module Make (L: LANG) : S = struct
 
   module Client = LiquidClient.Make(L)
+
+
+  let get_contract () =
+    From_files (Data.get_files ())
+    |> L.Source.parse_contract
+    |> L.Source.contract#ast
+
+  let get_inputs () =
+    Data.get_inputs ()
+    |> List.map L.Source.const#string
 
   let inject file =
     let signature = match !LiquidOptions.signature with
@@ -171,8 +194,8 @@ module Make (L: LANG) : S = struct
     let ops, r_storage, big_map_diff =
       Sync.run (get_contract ())
         !Data.entry_name
-        (Liquidity.const#string !Data.parameter)
-        (Liquidity.const#string !Data.storage)
+        (L.Source.const#string !Data.parameter)
+        (L.Source.const#string !Data.storage)
     in
     Printf.printf "%s\n# Internal operations: %d\n%!"
       r_storage#string
@@ -247,7 +270,7 @@ module Make (L: LANG) : S = struct
     Printf.printf "%s\n%!" r_storage#string
 
   let call_arg () =
-    let arg = !Data.parameter |> Liquidity.const#string in
+    let arg = !Data.parameter |> L.Source.const#string in
     let arg = Client.L.compile_const arg#ast |> Client.L.Target.const#ast in
     match !LiquidOptions.output with
     | None ->
@@ -266,7 +289,7 @@ module Make (L: LANG) : S = struct
         ?contract
         ~address:!Data.contract_address
         ~entry:!Data.entry_name
-        (Liquidity.const#string !Data.parameter)
+        (L.Source.const#string !Data.parameter)
     in
     Printf.printf "Successful call to contract %s in operation %s\n%!"
       !Data.contract_address op_h
@@ -280,7 +303,7 @@ module Make (L: LANG) : S = struct
         ?contract
         ~address:!Data.contract_address
         ~entry:!Data.entry_name
-        (Liquidity.const#string !Data.parameter)
+        (L.Source.const#string !Data.parameter)
     in
     Printf.eprintf "Raw operation:\n--------------\n%!";
     Printf.printf "%s\n%!" Hex.(show @@ of_bytes op)
@@ -292,13 +315,12 @@ module Make (L: LANG) : S = struct
        (get_contract ())#ast
        |> Client.L.compile_contract
        |> ignore);
-    let const = Liquidity.const#string !Data.const in
-    let ty = Liquidity.datatype#string !Data.ty in
+    let const = L.Source.const#string !Data.const in
+    let ty = L.Source.datatype#string !Data.ty in
     let bytes = Client.Sync.pack ~const ~ty in
     Printf.printf "0x%s\n%!" Hex.(show @@ of_bytes bytes)
 
 end
-
 
 module MichelsonClient = Make(MichelsonTarget)
 module LoveClient = Make(LoveTarget)

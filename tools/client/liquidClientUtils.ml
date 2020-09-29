@@ -112,3 +112,12 @@ let case_ignore_extra enc proj inj =
        | None -> None
        | Some x -> Some (x, ()))
     (fun (x, ()) -> inj x)
+
+module Option = struct
+  type 'a t = 'a option
+
+  let map (f : 'a -> 'b) (elt : 'a t) : 'b t =
+    match elt with
+    | None -> None
+    | Some e -> Some (f e)
+end

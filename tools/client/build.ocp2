@@ -8,6 +8,8 @@ OCaml.library("ocplib-liquidity-client-functor",
        "liquidClientSigs.ml";
        "liquidClientRequest.ml";
        "liquidClientTypes.ml";
+       "liquidTraceRepr.mli";
+       "liquidTraceRepr.ml";
        "liquidClientErrors.ml";
        "liquidClientRPCs.ml";
        "liquidClient.ml";

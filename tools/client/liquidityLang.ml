@@ -16,6 +16,10 @@ type compiled_init =
 
 let unit = CUnit
 let tuple l =  CTuple l
+
+let tunit = Tunit
+let ttuple l = Ttuple l
+
 let print_loc = LiquidLoc.print_loc
 
 let rec list_big_maps name acc storage storage_ty =
@@ -225,3 +229,5 @@ let datatype = new Lazy_superposed.superposer (object
   method print = print_datatype
   method encoding = datatype_encoding
 end)
+
+let normalize_loc l = l
