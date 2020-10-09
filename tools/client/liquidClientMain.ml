@@ -324,10 +324,12 @@ end
 
 module MichelsonClient = Make(MichelsonTarget)
 module LoveClient = Make(LoveTarget)
+module SolidityClient = Make(SolidityLang)
 
 let client () = match !LiquidOptions.target_lang with
   | Michelson_lang -> (module MichelsonClient : S)
   | Love_lang -> (module LoveClient : S)
+  | Solidity_lang -> (module SolidityClient : S)
 
 let parse_tez expl amount =
   match LiquidData.translate (LiquidFromParsetree.initial_env expl)

@@ -379,92 +379,104 @@ OCaml.library("dune-network-lib-env",
       "dune-network-lib-love-parsing", ["Dune_love_parsing"];
 ]));
 
+proto_files = [
+  (* Love *)
+  from_dune_proto("contract_hash.ml");
+  "storage_description.ml";
+  from_dune_proto("contract_repr.ml");
+  from_dune_proto("qty_repr.ml");
+  from_dune_proto("tez_repr.ml");
+  from_dune_proto("script_int_repr.ml");
+  from_dune_proto("period_repr.ml");
+  from_dune_proto("time_repr.ml");
+  from_dune_proto("script_timestamp_repr.ml");
+  from_dune_proto("script_expr_hash.ml");
+  from_dune_proto("love_pervasives.ml");
+  from_dune_proto("love_type.ml");
+  from_dune_proto("love_type_list.ml");
+  from_dune_proto("love_primitive.ml");
+  from_dune_proto("love_ast.ml");
+  from_dune_proto("love_runtime_ast.ml");
+  from_dune_proto("love_value.ml");
+  from_dune_proto("love_printer.ml");
+  from_dune_proto("love_encoding_sig.ml");
+  from_dune_proto("love_json_encoding.ml");
+  from_dune_proto("love_tenv.ml");
+
+  from_dune_proto("gas_limit_repr.ml");
+  from_dune_proto("michelson_v1_primitives.ml");
+  from_dune_proto("script_repr.ml");
+  (* from_dune_proto("gas_limit_repr.ml");
+   * from_dune_proto("michelson_v1_primitives.ml");
+   * from_dune_proto("script_repr.ml");
+   * from_dune_proto("lang1_repr.ml");
+   * from_dune_proto("lang1_script_repr.ml");
+   * from_dune_proto("love_repr.ml");
+   * from_dune_proto("love_script_repr.ml");
+   * from_dune_proto("dune_lang_repr.ml");
+   * from_dune_proto("dune_script_sig.ml");
+   * from_dune_proto("dune_script_registration.ml");
+   * from_dune_proto("dune_script_repr.ml");
+   * from_dune_proto("dune_misc.ml");
+   * from_dune_proto("love_size.ml");
+   * from_dune_proto("love_binary_buffer.ml");
+   * from_dune_proto("love_binary_encoding.ml");
+   * from_dune_proto("love_encoding.ml");
+   * from_dune_proto("nonce_hash.ml");
+   * from_dune_proto("blinded_public_key_hash.ml");
+   * from_dune_proto("dune_parameters_repr.ml");
+   * from_dune_proto("commitment_repr.ml");
+   * from_dune_proto("constants_repr.ml");
+   * from_dune_proto("constants_repr.ml");
+   * from_dune_proto("alpha_context.ml"); *)
+
+  (* from_dune_proto("love_script_repr.ml"); *)
+
+  (* from_dune_proto("love_size.ml"); *)
+  from_dune_proto("love_binary_buffer.ml");
+  from_dune_proto("love_binary_processor.ml");
+  from_dune_proto("love_binary_encoding.ml");
+  from_dune_proto("love_encoding.ml");
+  from_dune_proto("raw_level_repr.ml");
+  from_dune_proto("cycle_repr.ml");
+  from_dune_proto("voting_period_repr.ml");
+	
+  "alpha_context.ml";
+  from_dune_proto("love_size.ml");
+  from_dune_proto("love_gas.ml");
+  (* from_dune_proto("love_michelson.ml"); *)
+  from_dune_proto("love_context.ml");
+  from_dune_proto("love_free_vars.ml");
+  from_dune_proto("love_env.ml");
+  "love_translator.ml";
+  "love_michelson.ml";
+  (* from_dune_proto("love_translator.ml"); *)
+  from_dune_proto("love_typechecker.ml");
+  from_dune_proto("love_prim_interp.ml");
+  from_dune_proto("love_prim_list.ml");
+
+  (* "alpha_context.ml"; *)
+  (* from_dune_proto("love_context.ml");
+   * from_dune_proto("love_prim_interp.ml");
+   * from_dune_proto("love_prim_list.ml"); *)
+];
+
+solidity_files = [
+  from_dune_proto("solidity_common.ml");
+  from_dune_proto("solidity_ast.ml");
+  from_dune_proto("solidity_runtime_ast.ml");
+  from_dune_proto("solidity_visitor.ml");
+  from_dune_proto("solidity_json_encoding.ml");
+  from_dune_proto("solidity_printer.ml");
+];
+
+
 OCaml.library("dune-network-lib-protocol",
   with_libs(ocaml + {
      bytelink = [ "-custom" ];
      files =
       OCaml.pack("Tezos_protocol",
-       OCaml.pack("Protocol", [
-        (* Love *)
-        from_dune_proto("contract_hash.ml");
-        "storage_description.ml";
-        from_dune_proto("contract_repr.ml");
-        from_dune_proto("qty_repr.ml");
-        from_dune_proto("tez_repr.ml");
-        from_dune_proto("script_int_repr.ml");
-        from_dune_proto("period_repr.ml");
-        from_dune_proto("time_repr.ml");
-        from_dune_proto("script_timestamp_repr.ml");
-        from_dune_proto("script_expr_hash.ml");
-        from_dune_proto("love_pervasives.ml");
-        from_dune_proto("love_type.ml");
-        from_dune_proto("love_type_list.ml");
-        from_dune_proto("love_primitive.ml");
-        from_dune_proto("love_ast.ml");
-        from_dune_proto("love_runtime_ast.ml");
-        from_dune_proto("love_value.ml");
-        from_dune_proto("love_printer.ml");
-        from_dune_proto("love_encoding_sig.ml");
-        from_dune_proto("love_json_encoding.ml");
-        from_dune_proto("love_tenv.ml");
-
-        from_dune_proto("gas_limit_repr.ml");
-        from_dune_proto("michelson_v1_primitives.ml");
-        from_dune_proto("script_repr.ml");
-        (* from_dune_proto("gas_limit_repr.ml");
-         * from_dune_proto("michelson_v1_primitives.ml");
-         * from_dune_proto("script_repr.ml");
-         * from_dune_proto("lang1_repr.ml");
-         * from_dune_proto("lang1_script_repr.ml");
-         * from_dune_proto("love_repr.ml");
-         * from_dune_proto("love_script_repr.ml");
-         * from_dune_proto("dune_lang_repr.ml");
-         * from_dune_proto("dune_script_sig.ml");
-         * from_dune_proto("dune_script_registration.ml");
-         * from_dune_proto("dune_script_repr.ml");
-         * from_dune_proto("dune_misc.ml");
-         * from_dune_proto("love_size.ml");
-         * from_dune_proto("love_binary_buffer.ml");
-         * from_dune_proto("love_binary_encoding.ml");
-         * from_dune_proto("love_encoding.ml");
-         * from_dune_proto("nonce_hash.ml");
-         * from_dune_proto("blinded_public_key_hash.ml");
-         * from_dune_proto("dune_parameters_repr.ml");
-         * from_dune_proto("commitment_repr.ml");
-         * from_dune_proto("constants_repr.ml");
-         * from_dune_proto("constants_repr.ml");
-         * from_dune_proto("alpha_context.ml"); *)
-
-        (* from_dune_proto("love_script_repr.ml"); *)
-
-        (* from_dune_proto("love_size.ml"); *)
-        from_dune_proto("love_binary_buffer.ml");
-        from_dune_proto("love_binary_processor.ml");
-        from_dune_proto("love_binary_encoding.ml");
-        from_dune_proto("love_encoding.ml");
-        from_dune_proto("raw_level_repr.ml");
-        from_dune_proto("cycle_repr.ml");
-        from_dune_proto("voting_period_repr.ml");
-	
-        "alpha_context.ml";
-        from_dune_proto("love_size.ml");
-        from_dune_proto("love_gas.ml");
-        (* from_dune_proto("love_michelson.ml"); *)
-        from_dune_proto("love_context.ml");
-        from_dune_proto("love_free_vars.ml");
-        from_dune_proto("love_env.ml");
-        "love_translator.ml";
-        "love_michelson.ml";
-        (* from_dune_proto("love_translator.ml"); *)
-        from_dune_proto("love_typechecker.ml");
-        from_dune_proto("love_prim_interp.ml");
-        from_dune_proto("love_prim_list.ml");
-
-        (* "alpha_context.ml"; *)
-        (* from_dune_proto("love_context.ml");
-         * from_dune_proto("love_prim_interp.ml");
-         * from_dune_proto("love_prim_list.ml"); *)
-      ]));
+       OCaml.pack("Protocol", proto_files));
        requires = [];
 
    }, [ "dune-network-lib-env", [ "Environment", { filename = "environment" };
@@ -472,7 +484,6 @@ OCaml.library("dune-network-lib-protocol",
         "dune-network-lib-rpc", ["Tezos_rpc"];
         "dune-network-lib-config", ["Dune_config"];
       ]));
-
 
 OCaml.library("dune-network-lib-love-parsing",
   with_libs(ocaml + {
@@ -490,6 +501,69 @@ OCaml.library("dune-network-lib-love-parsing",
                                 "TzPervasives", { dep = false } ];
       "dune-network-lib-base_s", ["Tezos_base_S"];
     ]));
+
+OCaml.library("dune-network-lib-protocol-with-solidity",
+  with_libs(ocaml + {
+     bytelink = [ "-custom" ];
+     files =
+      OCaml.pack("Tezos_protocol_sol",
+       OCaml.pack("Protocol", proto_files + solidity_files));
+       requires = [];
+
+   }, [ "dune-network-lib-env", [ "Environment", { filename = "environment" };
+                                  "Error_monad", { dep = false } ];
+        "dune-network-lib-rpc", ["Tezos_rpc"];
+        "dune-network-lib-config", ["Dune_config"];
+      ]));
+
+(*
+OCaml.library("dune-network-lib-solidity-parsing",
+  with_libs(ocaml + {
+    files = OCaml.pack("Dune_solidity_parsing", [
+      from_dune_proto_client("solidity_parser.mly"), {
+          ocamlyacc = [ "menhir"; "--fixed-exception" ] };
+      from_dune_proto_client("solidity_lexer.mll");
+    ]);
+  }, [
+      "dune-network-lib-protocol-with-solidity", ["Tezos_protocol_sol"];
+      "dune-network-lib-base", ["Tezos_base";
+                                "TzPervasives", { dep = false } ];
+      "dune-network-lib-base_s", ["Tezos_base_S"];
+    ])); *)
+
+open_tezos = ["-open"; "Tezos_protocol_sol" ];
+
+open_std = [
+  "-open"; "Tezos_stdlib" ;
+  "-open"; "Tezos_base" ;
+  "-open"; "Tezos_protocol_sol" ;
+  "-open"; "Tezos_crypto" ;
+];
+
+with_tezos = {
+  asmcomp = ocaml.asmcomp + open_tezos;
+  bytecomp = ocaml.bytecomp + open_tezos;
+};
+
+with_base = {
+  asmcomp = ocaml.asmcomp + open_std;
+  bytecomp = ocaml.bytecomp + open_std;
+};
+
+OCaml.library("dune-network-lib-solidity-parsing", ocaml + {
+  files = [
+      from_dune_proto_client("solidity_parser.mly"), {
+          ocamlyacc = [ "menhir"; "--fixed-exception" ] } + with_tezos ;
+      from_dune_proto_client("solidity_lexer.mll"), with_base;
+    ];
+    requires = [
+      "dune-network-lib-protocol-with-solidity";
+      "dune-network-lib-stdlib";
+      "dune-network-lib-base";
+      "dune-network-lib-crypto";
+    ]
+    });
+
 
 OCaml.library("dune-network-lib-michelson-macros",
   with_libs(ocaml + {

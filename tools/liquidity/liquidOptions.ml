@@ -36,6 +36,7 @@ let verbosity =
 type target_lang =
   | Love_lang
   | Michelson_lang
+  | Solidity_lang
 
 let target_lang = ref Michelson_lang
 

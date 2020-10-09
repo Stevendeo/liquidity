@@ -368,6 +368,7 @@ let compile_liquid_files files =
   match !LiquidOptions.target_lang with
   | Michelson_lang -> compile_liquid_files_to_michelson files
   | Love_lang -> compile_liquid_files_to_love files
+  | Solidity_lang -> failwith "Todo: compile_liquid_files" 
 
 module Data = struct
   let files = ref []

@@ -2199,7 +2199,8 @@ and translate_structure env acc ast : syntax_exp parsed_struct =
       error_loc prim_loc "Top-level identifier %S already defined" prim_name;
     let tvs, atys, rtys = match !LiquidOptions.target_lang with
       | Michelson_lang -> translate_ext_type env prim_type
-      | Love_lang -> translate_ext_type_love env prim_type in
+      | Love_lang -> translate_ext_type_love env prim_type
+      | Solidity_lang -> failwith "No solidity compilation from Liquidity" in
     let valid_in_external = function
       | Trecord _ | Tsum _ | Tclosure _ | Tfail | Ttuple (_ :: _ :: _ :: _) ->
         error_loc prim_loc
@@ -2210,7 +2211,8 @@ and translate_structure env acc ast : syntax_exp parsed_struct =
      | Michelson_lang ->
        List.iter valid_in_external atys;
        List.iter valid_in_external rtys;
-     | Love_lang ->  ()
+     | Love_lang -> ()
+     | Solidity_lang -> failwith "TODO"
     );
     let effect =  List.exists (fun (a, _) -> a.txt = "effect") prim_attr in
     let nb_arg = List.length atys in
