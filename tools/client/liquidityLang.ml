@@ -20,6 +20,9 @@ let tuple l =  CTuple l
 let tunit = Tunit
 let ttuple l = Ttuple l
 
+let default_const (ty : datatype) : const =
+  LiquidUntype.untype_const (LiquidData.default_const ty)
+
 let print_loc = LiquidLoc.print_loc
 
 let rec list_big_maps name acc storage storage_ty =

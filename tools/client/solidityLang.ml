@@ -37,6 +37,27 @@ module Lang = struct
       (function
         | [t] -> t
         | _ -> failwith "Solidity.ttuple: bad type") l
+
+  let default_const ty =
+    let default = function
+      | ElementaryType e -> begin
+          match e with
+          | TypeBool -> CBool true
+          | TypeInt size
+          | TypeUint size
+          | TypeFixed (size, _)
+          | TypeUfixed (size, _) -> CNumber (Q.zero, Unit, size)
+          | TypeAddress _ | TypeBytes _ -> CAddress Contract_repr.zero
+          | TypeString -> CString ""
+        end
+      | Array (_, _) -> CArray []
+      | Mapping _ -> failwith "Mapping has no associated const"
+      | FunctionType _ -> failwith "Function type has no associated const"
+      | UserDefinedType _ -> failwith "User Defined Type has no associated const" in
+    match List.map default ty with
+    | [c] -> c
+    | l -> tuple l
+
   let list_big_maps (storage : const) (storage_ty : datatype) =
     [] (* No bigmaps in Solidity yet *)
 

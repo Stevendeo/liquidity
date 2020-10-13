@@ -21,6 +21,8 @@ module type LANG = sig
     val tunit : datatype
     val ttuple : datatype list -> datatype
 
+    val default_const : datatype -> const
+
     val list_big_maps : const -> datatype -> (LiquidClientUtils.bm_id * datatype * datatype) list
     (* val string_of_const : const -> string *)
     val storage : contract -> datatype
